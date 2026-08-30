@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Coding Notes for AI</title>
+  <desc id="description">A coding note and AI sparkle on a circular navy field.</desc>
+
+  <!-- Caltagirone Dusk: navy brand field. -->
+  <circle cx="512" cy="512" r="464" fill="#153249" />
+
+  <!-- Limestone coding-note bubble. -->
+  <path
+    fill="#f8f2e8"
+    d="M308 286h408c44.2 0 80 35.8 80 80v268c0 44.2-35.8 80-80 80H548l-88 82c-20.4 19-53.6 4.6-53.6-23.3V714H308c-44.2 0-80-35.8-80-80V366c0-44.2 35.8-80 80-80Z"
+  />
+
+  <!-- Weathered ceramic-blue code chevrons. -->
+  <path
+    fill="none"
+    stroke="#6f94a9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="52"
+    d="m430 418-90 82 90 82m164-164 90 82-90 82"
+  />
+
+  <!-- Restrained brass AI accent. -->
+  <path
+    fill="#b58b3e"
+    d="M768 174c9.8 44.8 27.2 62.2 72 72-44.8 9.8-62.2 27.2-72 72-9.8-44.8-27.2-62.2-72-72 44.8-9.8 62.2-27.2 72-72Z"
+  />
+</svg>

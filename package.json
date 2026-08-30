@@ -1,0 +1,583 @@
+{
+  "name": "coding-notes-for-ai",
+  "displayName": "Coding Notes for AI",
+  "description": "Attach structured, shareable coding notes to any workspace text file and hand them to AI coding assistants.",
+  "version": "0.6.0",
+  "publisher": "aepcodes",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ynot3363/ai-review-notes-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ynot3363/ai-review-notes-extension/issues"
+  },
+  "icon": "assets/icon.png",
+  "engines": {
+    "vscode": "^1.74.0",
+    "node": ">=22"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Local note storage, editing, navigation, reports, and clipboard copy remain available.",
+      "restrictedConfigurations": [
+        "codingNotesForAi.storage.sharedFile"
+      ]
+    }
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "code review",
+    "comments",
+    "annotations",
+    "coding notes",
+    "ai"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:codingNotesForAi.commentsView",
+    "onCommand:codingNotesForAi.createNote",
+    "onCommand:codingNotesForAi.createSymbolNote",
+    "onCommand:codingNotesForAi.cancelNote",
+    "onCommand:codingNotesForAi.replyToNote",
+    "onCommand:codingNotesForAi.editNote",
+    "onCommand:codingNotesForAi.saveNoteEdit",
+    "onCommand:codingNotesForAi.cancelNoteEdit",
+    "onCommand:codingNotesForAi.changeCategory",
+    "onCommand:codingNotesForAi.deleteNote",
+    "onCommand:codingNotesForAi.resolveNote",
+    "onCommand:codingNotesForAi.reopenNote",
+    "onCommand:codingNotesForAi.moveNote",
+    "onCommand:codingNotesForAi.reattachNote",
+    "onCommand:codingNotesForAi.showComments",
+    "onCommand:codingNotesForAi.refreshComments",
+    "onCommand:codingNotesForAi.generateOutline",
+    "onCommand:codingNotesForAi.copyPrompt"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codingNotesForAi.createNote",
+        "title": "Add Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(comment-add)",
+        "enablement": "!commentIsEmpty"
+      },
+      {
+        "command": "codingNotesForAi.replyToNote",
+        "title": "Reply to Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(send)",
+        "enablement": "!commentIsEmpty"
+      },
+      {
+        "command": "codingNotesForAi.cancelNote",
+        "title": "Cancel Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(close)"
+      },
+      {
+        "command": "codingNotesForAi.editNote",
+        "title": "Edit Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "codingNotesForAi.saveNoteEdit",
+        "title": "Save Note Edit",
+        "category": "Coding Notes for AI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "codingNotesForAi.cancelNoteEdit",
+        "title": "Cancel Note Edit",
+        "category": "Coding Notes for AI",
+        "icon": "$(close)"
+      },
+      {
+        "command": "codingNotesForAi.changeCategory",
+        "title": "Change Note Category",
+        "category": "Coding Notes for AI",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "codingNotesForAi.deleteNote",
+        "title": "Delete Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "codingNotesForAi.resolveNote",
+        "title": "Resolve Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "codingNotesForAi.reopenNote",
+        "title": "Reopen Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(issues)"
+      },
+      {
+        "command": "codingNotesForAi.moveNote",
+        "title": "Move Note Here",
+        "category": "Coding Notes for AI",
+        "icon": "$(move)"
+      },
+      {
+        "command": "codingNotesForAi.reattachNote",
+        "title": "Reattach Note Here",
+        "category": "Coding Notes for AI",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "codingNotesForAi.showComments",
+        "title": "Show Notes",
+        "category": "Coding Notes for AI"
+      },
+      {
+        "command": "codingNotesForAi.refreshComments",
+        "title": "Refresh Notes",
+        "category": "Coding Notes for AI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "codingNotesForAi.generateOutline",
+        "title": "Generate & Copy AI Resolution Report",
+        "category": "Coding Notes for AI",
+        "icon": "$(markdown)"
+      },
+      {
+        "command": "codingNotesForAi.copyPrompt",
+        "title": "Copy AI Prompt",
+        "category": "Coding Notes for AI",
+        "icon": "$(copy)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "codingNotesForAi.createNote",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorTextFocus"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "codingNotesForAi.commentsView",
+          "name": "Coding Notes for AI",
+          "icon": "$(comment-discussion)",
+          "contextualTitle": "Coding Notes for AI"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "codingNotesForAi.replyToNote",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.cancelNote",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.editNote",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.saveNoteEdit",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.cancelNoteEdit",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.changeCategory",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.deleteNote",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.resolveNote",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.reopenNote",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.moveNote",
+          "when": "false"
+        },
+        {
+          "command": "codingNotesForAi.reattachNote",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "codingNotesForAi.createNote",
+          "when": "editorTextFocus",
+          "group": "codingNotesForAi@1"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "codingNotesForAi.changeCategory",
+          "when": "commentController == codingNotesForAi && commentThreadIsEmpty",
+          "group": "inline@1"
+        },
+        {
+          "command": "codingNotesForAi.createNote",
+          "when": "commentController == codingNotesForAi && commentThreadIsEmpty",
+          "group": "inline@2"
+        },
+        {
+          "command": "codingNotesForAi.cancelNote",
+          "when": "commentController == codingNotesForAi && commentThread == codingNotesForAi.draft",
+          "group": "inline@3"
+        },
+        {
+          "command": "codingNotesForAi.changeCategory",
+          "when": "commentController == codingNotesForAi && commentThread == open",
+          "group": "codingNotesForAi@1"
+        },
+        {
+          "command": "codingNotesForAi.resolveNote",
+          "when": "commentController == codingNotesForAi && commentThread == open",
+          "group": "codingNotesForAi@2"
+        },
+        {
+          "command": "codingNotesForAi.reopenNote",
+          "when": "commentController == codingNotesForAi && commentThread == resolved",
+          "group": "codingNotesForAi@2"
+        }
+      ],
+      "comments/commentThread/title": [
+        {
+          "command": "codingNotesForAi.cancelNote",
+          "when": "commentController == codingNotesForAi && commentThread == codingNotesForAi.draft",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codingNotesForAi.copyPrompt",
+          "when": "commentController == codingNotesForAi && commentThread == open",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codingNotesForAi.copyPrompt",
+          "when": "commentController == codingNotesForAi && commentThread == resolved",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codingNotesForAi.resolveNote",
+          "when": "commentController == codingNotesForAi && commentThread == open",
+          "group": "navigation@2"
+        },
+        {
+          "command": "codingNotesForAi.reopenNote",
+          "when": "commentController == codingNotesForAi && commentThread == resolved",
+          "group": "navigation@2"
+        }
+      ],
+      "comments/comment/context": [
+        {
+          "command": "codingNotesForAi.cancelNoteEdit",
+          "when": "commentController == codingNotesForAi && comment == codingNotesForAi.note",
+          "group": "inline@1"
+        },
+        {
+          "command": "codingNotesForAi.saveNoteEdit",
+          "when": "commentController == codingNotesForAi && comment == codingNotesForAi.note",
+          "group": "inline@2"
+        }
+      ],
+      "comments/comment/title": [
+        {
+          "command": "codingNotesForAi.editNote",
+          "when": "commentController == codingNotesForAi && comment == codingNotesForAi.note",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codingNotesForAi.changeCategory",
+          "when": "commentController == codingNotesForAi && comment == codingNotesForAi.note",
+          "group": "navigation@2"
+        },
+        {
+          "command": "codingNotesForAi.moveNote",
+          "when": "commentController == codingNotesForAi && comment == codingNotesForAi.note",
+          "group": "navigation@3"
+        },
+        {
+          "command": "codingNotesForAi.deleteNote",
+          "when": "commentController == codingNotesForAi && comment == codingNotesForAi.note",
+          "group": "navigation@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "codingNotesForAi.refreshComments",
+          "when": "view == codingNotesForAi.commentsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codingNotesForAi.generateOutline",
+          "when": "view == codingNotesForAi.commentsView",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "codingNotesForAi.copyPrompt",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.comment",
+          "group": "inline@1"
+        },
+        {
+          "command": "codingNotesForAi.editNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.comment",
+          "group": "inline@2"
+        },
+        {
+          "command": "codingNotesForAi.resolveNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.comment",
+          "group": "codingNotesForAi.manage@1"
+        },
+        {
+          "command": "codingNotesForAi.moveNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.comment",
+          "group": "codingNotesForAi.manage@2"
+        },
+        {
+          "command": "codingNotesForAi.deleteNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.comment",
+          "group": "codingNotesForAi.manage@3"
+        },
+        {
+          "command": "codingNotesForAi.copyPrompt",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedComment",
+          "group": "inline@1"
+        },
+        {
+          "command": "codingNotesForAi.editNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedComment",
+          "group": "inline@2"
+        },
+        {
+          "command": "codingNotesForAi.reopenNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedComment",
+          "group": "codingNotesForAi.manage@1"
+        },
+        {
+          "command": "codingNotesForAi.moveNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedComment",
+          "group": "codingNotesForAi.manage@2"
+        },
+        {
+          "command": "codingNotesForAi.deleteNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedComment",
+          "group": "codingNotesForAi.manage@3"
+        },
+        {
+          "command": "codingNotesForAi.reattachNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.detachedComment",
+          "group": "inline@1"
+        },
+        {
+          "command": "codingNotesForAi.deleteNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.detachedComment",
+          "group": "inline@2"
+        },
+        {
+          "command": "codingNotesForAi.reopenNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedDetachedComment",
+          "group": "inline@1"
+        },
+        {
+          "command": "codingNotesForAi.reattachNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedDetachedComment",
+          "group": "inline@2"
+        },
+        {
+          "command": "codingNotesForAi.deleteNote",
+          "when": "view == codingNotesForAi.commentsView && viewItem == codingNotesForAi.resolvedDetachedComment",
+          "group": "inline@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Coding Notes for AI",
+      "properties": {
+        "codingNotesForAi.categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": [
+            "General",
+            "Bug",
+            "Improvement",
+            "Question",
+            "Documentation",
+            "Testing",
+            "Performance",
+            "Security",
+            "Accessibility",
+            "Other"
+          ],
+          "scope": "resource",
+          "markdownDescription": "Additional categories shown in note pickers alongside the built-in list. The default category and an existing note's current category are included automatically. Custom values entered in the picker are saved for future selection."
+        },
+        "codingNotesForAi.defaultCategory": {
+          "type": "string",
+          "default": "General",
+          "scope": "resource",
+          "description": "Category selected initially when adding a note."
+        },
+        "codingNotesForAi.defaultStatus": {
+          "type": "string",
+          "enum": [
+            "open",
+            "question",
+            "follow-up",
+            "resolved"
+          ],
+          "default": "open",
+          "scope": "resource",
+          "description": "Status used for newly added notes."
+        },
+        "codingNotesForAi.creationUi": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "lineGutter",
+              "symbolCodeLens",
+              "symbolHover"
+            ],
+            "enumDescriptions": [
+              "Show the native line-gutter add control.",
+              "Show Add Note CodeLens buttons above symbols.",
+              "Show an Add Note action when symbol declarations are hovered."
+            ]
+          },
+          "uniqueItems": true,
+          "default": [
+            "lineGutter",
+            "symbolHover"
+          ],
+          "scope": "resource",
+          "description": "Controls used to create notes. Enable any combination; existing note threads remain visible."
+        },
+        "codingNotesForAi.storage.mode": {
+          "type": "string",
+          "enum": [
+            "shared",
+            "private"
+          ],
+          "enumDescriptions": [
+            "Store notes in a visible JSON sidecar in each workspace root so they can be versioned and discovered by humans, scripts, and AI tools.",
+            "Store notes in VS Code workspace storage on this machine without creating a workspace file."
+          ],
+          "default": "shared",
+          "scope": "resource",
+          "description": "Where coding notes are persisted."
+        },
+        "codingNotesForAi.storage.sharedFile": {
+          "type": "string",
+          "minLength": 1,
+          "default": "CODING_NOTES_FOR_AI.json",
+          "scope": "resource",
+          "markdownDescription": "Workspace-root-relative filename used when `codingNotesForAi.storage.mode` is `shared`."
+        },
+        "codingNotesForAi.outline.groupBy": {
+          "type": "string",
+          "enum": [
+            "file",
+            "category",
+            "status"
+          ],
+          "enumDescriptions": [
+            "Group notes by workspace-relative file path.",
+            "Group notes by category.",
+            "Group notes by status."
+          ],
+          "default": "file",
+          "description": "How notes are grouped in the Explorer tree."
+        },
+        "codingNotesForAi.files.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [
+            "**/.git/**",
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/coverage/**",
+            "**/storybook-static/**",
+            "**/.cache/**",
+            "**/.next/**",
+            "**/.nuxt/**",
+            "**/.parcel-cache/**",
+            "**/.turbo/**",
+            "**/.yarn/**",
+            "**/.pnpm-store/**",
+            "**/.vscode-test/**",
+            "**/out/**"
+          ],
+          "scope": "resource",
+          "description": "Glob patterns where the note gutter affordance and Add Note command are disabled."
+        },
+        "codingNotesForAi.prompt.contextLines": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200,
+          "default": 20,
+          "scope": "resource",
+          "description": "Maximum surrounding source lines included before and after a selected note."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --ext .ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.extension-test.json --noEmit",
+    "test": "vitest run",
+    "compile:extension-tests": "tsc -p tsconfig.extension-test.json",
+    "test:extension": "npm run build && npm run compile:extension-tests && node ./dist-test/test/extension/runTest.js",
+    "package": "npm run build && vsce package --no-dependencies --allow-missing-repository --no-rewrite-relative-links",
+    "vscode:prepublish": "npm run build",
+    "validate": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/vscode": "1.74.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.3",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}
