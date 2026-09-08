@@ -38,6 +38,8 @@ To annotate a section, select its exact range and run **Coding Notes for AI: Add
 
 Each thread contains one structured finding with a category, status, text, timestamps, and a stable ID. While adding a note, use the tag action beside the submit checkmark to choose its category; the selected category appears in the draft label. Use the saved thread actions to edit it in VS Code's multiline comment editor, copy its AI prompt, delete it, resolve it, or reopen it. The copy icon appears beside the resolution action. Resolved notes remain available in the outline and reports.
 
+Newly submitted threads collapse by default. Set `codingNotesForAi.newNoteDisplay` to `expanded` to leave them open instead.
+
 ### Symbol anchors
 
 For languages with an installed document-symbol provider, Add Note can target any function, class, method, constant, variable, or other declaration exposed for the file instead of the exact selection. Hover a reported symbol's declaration to reveal a compact **Add Note** action for direct attachment. The regular target picker puts the closest symbol first and keeps every other reported symbol searchable. Symbol support is best effort: language extensions expose different levels of detail, and local variables are not always reported. A symbol note also retains the declaration range as its universal text-anchor fallback.
@@ -45,6 +47,8 @@ For languages with an installed document-symbol provider, Add Note can target an
 Symbols with saved notes show a **View Note: _category_** CodeLens. These navigation lenses remain visible regardless of the `codingNotesForAi.creationUi` selection; disabling `symbolCodeLens` hides only the **Add Note** CodeLens.
 
 ### Edits, drift, and reattachment
+
+Refreshing notes preserves an in-progress comment edit. If the same note's text changes externally, saving the stale draft is rejected and the draft remains available to copy. Cancel editing to load the latest saved text before starting a new edit.
 
 Stored anchors include the workspace-relative file, range, a bounded selected-text quote, and content/context fingerprints. When edits move code, the extension tries to relocate a note using that evidence. It never silently attaches an ambiguous match to unrelated code.
 
@@ -56,7 +60,9 @@ To change the association of an attached note, select a new line or range in an 
 
 The default `shared` mode writes one `CODING_NOTES_FOR_AI.json` sidecar in each workspace root. Source files stay untouched. The sidecar is ordinary JSON designed for review, versioning, scripts, and AI discovery; commit it when the notes should travel with the codebase.
 
-Multi-root workspaces keep an independent sidecar in each root. File references in a sidecar are relative to that root. Updates use a temporary-file rename when the workspace provider supports it, with a serialized write fallback for providers that do not. Unrelated external edits are preserved; if the same note changed elsewhere, the action is rejected and the latest version is reloaded instead of overwriting it.
+Multi-root workspaces keep an independent sidecar in each root. File references in a sidecar are relative to that root. Updates hold an exclusive filesystem lock across the complete read/modify/write operation, so concurrent extension windows preserve each other's edits. Updates use a temporary-file rename, with a write fallback under the same lock. Notes changed before an action's conditional write are preserved and the action is rejected. Clear All Notes uses the snapshot shown in its confirmation; later additions and changes are preserved even after a background refresh.
+
+Local folders and Remote SSH/container folders use filesystem-backed storage through the workspace extension host. Virtual filesystem providers without exclusive locking support allow reading existing shared notes; use private storage for edits. External scripts that write shared notes concurrently must follow the same advisory lock protocol: atomically create a sibling directory named `.<store filename>.lock` before reading the store, and remove it after writing. The extension also checks for external changes immediately before replacing the store, but cannot guarantee coordination with tools that ignore the lock. If a writer crashes, close all writers before removing its leftover lock directory; live locks are never expired automatically.
 
 Set `codingNotesForAi.storage.mode` to `private` to keep notes in VS Code's local workspace storage instead. Private notes do not create or modify a workspace file, are not portable with the repository, and are not naturally discoverable by AI tools or other collaborators.
 
@@ -69,13 +75,14 @@ Commands intended for direct use are available from the Command Palette under **
 | **Coding Notes for AI: Add Note**                             | Creates a finding on the selection, active line, or any available file symbol.            |
 | **Coding Notes for AI: Edit Note**                            | Updates the selected finding.                                                             |
 | **Coding Notes for AI: Delete Note**                          | Deletes the selected finding after confirmation.                                          |
+| **Coding Notes for AI: Clear All Notes**                      | Deletes every note in the open workspace after confirmation.                              |
 | **Coding Notes for AI: Resolve Note**                         | Marks the selected finding resolved without deleting it.                                  |
 | **Coding Notes for AI: Reopen Note**                          | Reopens a resolved finding by returning its status to `open`.                             |
 | **Coding Notes for AI: Move Note Here**                       | Moves an attached finding to the current selection, line, or available symbol.            |
 | **Coding Notes for AI: Reattach Note Here**                   | Anchors an orphaned finding to the current selection, line, or available symbol.          |
 | **Coding Notes for AI: Show Notes**                           | Reveals the grouped Coding Notes for AI tree in the Explorer.                             |
 | **Coding Notes for AI: Refresh Notes**                        | Reloads persisted notes and refreshes editor threads and the tree.                        |
-| **Coding Notes for AI: Generate & Copy AI Resolution Report** | Opens and copies a task report instructing an AI agent to inspect and resolve the notes.  |
+| **Coding Notes for AI: Generate & Copy AI Resolution Report** | Asks for open or all notes, then opens and copies the resulting AI task report.           |
 | **Coding Notes for AI: Copy AI Prompt**                       | Copies a focused prompt for the selected finding; also available on native saved threads. |
 
 ## Explorer, reports, and AI discovery
@@ -94,6 +101,7 @@ Configure these under **Settings** by searching for `Coding Notes for AI`, or pl
 | `codingNotesForAi.defaultCategory`     | `"General"`                        | Initially selected category.                                             |
 | `codingNotesForAi.defaultStatus`       | `"open"`                           | Status for new findings: `open`, `question`, `follow-up`, or `resolved`. |
 | `codingNotesForAi.creationUi`          | gutter and symbol hover            | Any combination of gutter, CodeLens, and symbol-hover controls.          |
+| `codingNotesForAi.newNoteDisplay`      | `"collapse"`                       | Display a newly added note as `collapse` or `expanded`.                  |
 | `codingNotesForAi.storage.mode`        | `"shared"`                         | Uses a shared JSON sidecar or private local VS Code storage.             |
 | `codingNotesForAi.storage.sharedFile`  | `"CODING_NOTES_FOR_AI.json"`       | Workspace-root-relative shared sidecar filename.                         |
 | `codingNotesForAi.files.exclude`       | common generated/cache directories | Disables note creation in matching workspace paths.                      |

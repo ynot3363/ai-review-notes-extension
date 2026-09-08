@@ -2,7 +2,7 @@
   "name": "coding-notes-for-ai",
   "displayName": "Coding Notes for AI",
   "description": "Attach structured, shareable coding notes to any workspace text file and hand them to AI coding assistants.",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "publisher": "aepcodes",
   "license": "AGPL-3.0-only",
   "repository": {
@@ -37,6 +37,9 @@
     "ai"
   ],
   "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
   "activationEvents": [
     "onStartupFinished",
     "onView:codingNotesForAi.commentsView",
@@ -49,6 +52,7 @@
     "onCommand:codingNotesForAi.cancelNoteEdit",
     "onCommand:codingNotesForAi.changeCategory",
     "onCommand:codingNotesForAi.deleteNote",
+    "onCommand:codingNotesForAi.clearAllNotes",
     "onCommand:codingNotesForAi.resolveNote",
     "onCommand:codingNotesForAi.reopenNote",
     "onCommand:codingNotesForAi.moveNote",
@@ -107,6 +111,12 @@
       {
         "command": "codingNotesForAi.deleteNote",
         "title": "Delete Note",
+        "category": "Coding Notes for AI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "codingNotesForAi.clearAllNotes",
+        "title": "Clear All Notes",
         "category": "Coding Notes for AI",
         "icon": "$(trash)"
       },
@@ -333,6 +343,11 @@
           "command": "codingNotesForAi.generateOutline",
           "when": "view == codingNotesForAi.commentsView",
           "group": "navigation@2"
+        },
+        {
+          "command": "codingNotesForAi.clearAllNotes",
+          "when": "view == codingNotesForAi.commentsView && codingNotesForAi.hasComments",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -478,6 +493,20 @@
           ],
           "scope": "resource",
           "description": "Controls used to create notes. Enable any combination; existing note threads remain visible."
+        },
+        "codingNotesForAi.newNoteDisplay": {
+          "type": "string",
+          "enum": [
+            "collapse",
+            "expanded"
+          ],
+          "enumDescriptions": [
+            "Collapse a note thread immediately after it is added.",
+            "Leave a note thread expanded after it is added."
+          ],
+          "default": "collapse",
+          "scope": "resource",
+          "description": "How a newly added note thread is displayed."
         },
         "codingNotesForAi.storage.mode": {
           "type": "string",

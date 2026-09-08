@@ -437,6 +437,21 @@ describe('ReviewCommentController', () => {
     expect(controller.getThread('note-1')).toBe(draft);
     expect(controller.getNoteId(draft.comments[0])).toBe('note-1');
     expect(draft.canReply).toBe(false);
+    expect(draft.collapsibleState).toBe(vscode.CommentThreadCollapsibleState.Collapsed);
+  });
+
+  it('can leave a newly submitted note expanded by configuration', async () => {
+    const document = createDocument(vscode.Uri.file('/workspace/src/example.ts'), 'const x = 1;');
+    const createNote = vi.fn((input: NewReviewThreadInput) =>
+      reviewNote({ uri: input.uri, range: input.range, body: input.body }),
+    );
+    const controller = new ReviewCommentController(callbacks({ createNote }), {
+      newNoteDisplay: () => 'expanded',
+    });
+    const draft = controller.createDraft(document, range(0, 0, 0, 12))!;
+
+    await controller.acceptCommentReply({ thread: draft, text: 'Keep this visible.' });
+
     expect(draft.collapsibleState).toBe(vscode.CommentThreadCollapsibleState.Expanded);
   });
 
@@ -501,6 +516,7 @@ describe('ReviewCommentController', () => {
     expect(updateNote).toHaveBeenCalledWith({
       id: 'note-1',
       body: 'Persisted change\nwith another line',
+      expectedBody: 'Check this behavior.',
     });
     expect(comment).toMatchObject({
       body: 'Persisted change\nwith another line',
@@ -535,5 +551,40 @@ describe('ReviewCommentController', () => {
     expect(controller.discardDraft(persisted)).toBe(false);
     expect(controller.getDraftState(persisted)).toBeUndefined();
     expect(controller.setDraftCategory(persisted, 'Security')).toBe(false);
+  });
+
+  it('preserves an unsaved edit across unchanged and unrelated refreshes', () => {
+    const controller = new ReviewCommentController(callbacks());
+    const saved = reviewNote();
+    controller.replaceNotes([saved]);
+    controller.startEditing(saved.id);
+    const comment = controller.getThread(saved.id)!.comments[0]!;
+    comment.body = 'Unsaved user draft';
+
+    controller.replaceNotes([saved, reviewNote({ id: 'note-2', body: 'Another note' })]);
+    controller.startEditing(saved.id);
+
+    expect(comment.mode).toBe(vscode.CommentMode.Editing);
+    expect(comment.body).toBe('Unsaved user draft');
+  });
+
+  it('keeps the draft when an external edit arrives and rejects a stale save', async () => {
+    const updateNote = vi.fn(() => undefined);
+    const controller = new ReviewCommentController(callbacks({ updateNote }));
+    const saved = reviewNote();
+    controller.replaceNotes([saved]);
+    controller.startEditing(saved.id);
+    const comment = controller.getThread(saved.id)!.comments[0]!;
+    comment.body = 'Unsaved user draft';
+
+    controller.replaceNotes([{ ...saved, body: 'External edit' }]);
+
+    await expect(controller.saveEdit(comment)).rejects.toThrow(/changed externally/);
+    expect(updateNote).not.toHaveBeenCalled();
+    expect(comment.body).toBe('Unsaved user draft');
+    expect(comment.mode).toBe(vscode.CommentMode.Editing);
+    controller.cancelEdit(comment);
+    expect(comment.body).toBe('External edit');
+    expect(comment.mode).toBe(vscode.CommentMode.Preview);
   });
 });

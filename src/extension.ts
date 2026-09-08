@@ -56,6 +56,10 @@ interface CategoryQuickPickItem extends vscode.QuickPickItem {
   readonly custom?: true;
 }
 
+interface ReportScopeQuickPickItem extends vscode.QuickPickItem {
+  readonly scope: 'open' | 'all';
+}
+
 type CreationUiControl = 'lineGutter' | 'symbolCodeLens' | 'symbolHover';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -85,8 +89,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         workspaceRef.current?.synchronize(false);
         return toThreadNote(created);
       },
-      updateNote: async ({ id, body }) => {
-        const updated = await manager.updateBody(id, body);
+      updateNote: async ({ id, body, expectedBody }) => {
+        const updated = await manager.updateBody(id, body, expectedBody);
         workspaceRef.current?.synchronize(false);
         return toThreadNote(updated);
       },
@@ -101,6 +105,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       exclude: [],
       isDocumentEligible: (document) => manager.isEligibleDocument(document),
       isGutterEnabled: (document) => readCreationUiControls(document.uri).has('lineGutter'),
+      newNoteDisplay: (uri) => readNewNoteDisplay(uri),
     },
   );
 
@@ -354,6 +359,37 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }),
     ),
     vscode.commands.registerCommand(
+      'codingNotesForAi.clearAllNotes',
+      run('Clear all notes', async () => {
+        await workspace.ready();
+        const snapshot = manager.captureClearAllSnapshot();
+        const count = snapshot.length;
+        if (count === 0) {
+          await vscode.window.showInformationMessage('There are no coding notes to clear.');
+          return;
+        }
+        const confirmation = await vscode.window.showWarningMessage(
+          `Delete all ${count} coding note${count === 1 ? '' : 's'} from this workspace? This cannot be undone.`,
+          { modal: true },
+          'Delete All Notes',
+        );
+        if (confirmation !== 'Delete All Notes') {
+          return;
+        }
+        const result = await manager.clearAllNotes(snapshot);
+        workspace.synchronize();
+        if (result.skippedCount > 0) {
+          await vscode.window.showWarningMessage(
+            `Deleted ${result.deletedCount} coding note${result.deletedCount === 1 ? '' : 's'}. ${result.skippedCount} note${result.skippedCount === 1 ? '' : 's'} changed or were removed externally and were skipped.`,
+          );
+          return;
+        }
+        await vscode.window.showInformationMessage(
+          `Deleted ${result.deletedCount} coding note${result.deletedCount === 1 ? '' : 's'}.`,
+        );
+      }),
+    ),
+    vscode.commands.registerCommand(
       'codingNotesForAi.resolveNote',
       run('Resolve note', async (argument) => {
         const id = resolveNoteId(argument, manager, commentUi);
@@ -404,7 +440,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       'codingNotesForAi.generateOutline',
       run('Generate and copy AI resolution report', async () => {
         await workspace.refresh(false);
-        const comments = provider.getComments();
+        const scope = await chooseReportScope();
+        if (!scope) {
+          return;
+        }
+        const allComments = provider.getComments();
+        const comments =
+          scope === 'open'
+            ? allComments.filter(({ status }) => status !== 'resolved')
+            : allComments;
+        if (comments.length === 0) {
+          await vscode.window.showInformationMessage(
+            scope === 'open'
+              ? 'There are no open coding notes to include in the report.'
+              : 'There are no coding notes to include in the report.',
+          );
+          return;
+        }
         await generateCommentsOutline(comments, manager.getSharedStoreUris());
         await vscode.window.showInformationMessage(
           `Opened and copied an AI resolution report with ${comments.length} note${comments.length === 1 ? '' : 's'}. Paste it into an AI coding agent to begin.`,
@@ -690,6 +742,28 @@ function categoryConfigurationTarget(
   return vscode.ConfigurationTarget.Global;
 }
 
+async function chooseReportScope(): Promise<'open' | 'all' | undefined> {
+  const selected = await vscode.window.showQuickPick<ReportScopeQuickPickItem>(
+    [
+      {
+        label: 'Open notes',
+        description: 'Exclude resolved notes',
+        scope: 'open',
+      },
+      {
+        label: 'All notes',
+        description: 'Include resolved notes',
+        scope: 'all',
+      },
+    ],
+    {
+      title: 'Coding Notes for AI: Choose report scope',
+      placeHolder: 'Include open notes only or every note?',
+    },
+  );
+  return selected?.scope;
+}
+
 async function resolveDraftSymbol(
   document: vscode.TextDocument,
   input: NewReviewThreadInput,
@@ -810,6 +884,13 @@ function readCreationUiControls(resource?: vscode.Uri): ReadonlySet<CreationUiCo
     );
   }
   return new Set(['lineGutter', 'symbolHover']);
+}
+
+function readNewNoteDisplay(resource: vscode.Uri): 'collapse' | 'expanded' {
+  const configured = vscode.workspace
+    .getConfiguration('codingNotesForAi', resource)
+    .get<unknown>('newNoteDisplay');
+  return configured === 'expanded' ? 'expanded' : 'collapse';
 }
 
 function summaryMessage(notes: readonly ReviewNoteView[]): string {

@@ -33,6 +33,11 @@ export interface ReviewNoteManagerResult {
   readonly issues: readonly ReviewNoteManagerIssue[];
 }
 
+export interface ClearAllReviewNotesResult {
+  readonly deletedCount: number;
+  readonly skippedCount: number;
+}
+
 export interface CreateStoredReviewNoteInput {
   readonly document: vscode.TextDocument;
   readonly range: vscode.Range;
@@ -271,10 +276,13 @@ export class ReviewNoteManager implements vscode.Disposable {
     return created;
   }
 
-  public updateBody(id: string, body: string): Promise<ReviewNoteView> {
+  public updateBody(id: string, body: string, expectedBody?: string): Promise<ReviewNoteView> {
     return this.enqueueOperation(() => {
       if (!body.trim()) {
         throw new TypeError('A note must contain text.');
+      }
+      if (expectedBody !== undefined && this.requireEntry(id).note.body !== expectedBody) {
+        throw new ReviewNoteConflictError(id);
       }
       return this.updateNoteDirect(id, (note) => ({
         ...note,
@@ -327,6 +335,32 @@ export class ReviewNoteManager implements vscode.Disposable {
 
   public deleteNote(id: string): Promise<boolean> {
     return this.enqueueOperation(() => this.deleteNoteDirect(id));
+  }
+
+  /** Capture both record values and their original repositories before confirmation. */
+  public captureClearAllSnapshot(): readonly ManagedReviewNote[] {
+    return [...this.entries.values()];
+  }
+
+  /** Delete only the confirmed snapshot, preserving additions and changed records. */
+  public clearAllNotes(
+    snapshot: readonly ManagedReviewNote[] = this.captureClearAllSnapshot(),
+  ): Promise<ClearAllReviewNotesResult> {
+    const confirmed = [...snapshot];
+    return this.enqueueOperation(async () => {
+      let deletedCount = 0;
+      let skippedCount = 0;
+      for (const entry of confirmed) {
+        const result = await entry.binding.repository.compareAndSwap(entry.note, undefined);
+        if (result.applied) {
+          deletedCount += 1;
+        } else {
+          skippedCount += 1;
+        }
+      }
+      await this.refreshDirect();
+      return { deletedCount, skippedCount };
+    });
   }
 
   private async deleteNoteDirect(id: string): Promise<boolean> {

@@ -1,4 +1,71 @@
 {
   "version": 1,
-  "notes": []
+  "notes": [
+    {
+      "id": "84af8d2b-c0e3-4144-a90c-3a874c26c2e9",
+      "relativePath": "DEVELOPMENT.md",
+      "anchorKind": "line",
+      "category": "General",
+      "status": "resolved",
+      "body": "test",
+      "createdAt": "2026-09-04T00:29:12.113Z",
+      "updatedAt": "2026-09-04T00:29:18.403Z",
+      "anchor": {
+        "range": {
+          "start": {
+            "line": 56,
+            "character": 0
+          },
+          "end": {
+            "line": 56,
+            "character": 3
+          }
+        },
+        "quote": "```",
+        "quoteLength": 3,
+        "quoteTruncated": false,
+        "quoteHash": "f1b901847390b0ed7e374e7c1e464ec17b46a427c487a5ad6cbd2906405083d5",
+        "prefixLength": 256,
+        "prefixHash": "085b345b3e3cb3decd54f587015305d8fd1b06cd5c5412569ac47e3c2ebc07f8",
+        "suffixLength": 256,
+        "suffixHash": "3df691a693d843bb6055a18869f9403bdc1bee1fd9e9289fccd92ec4be4cb60b"
+      },
+      "resolution": {
+        "state": "attached"
+      }
+    },
+    {
+      "id": "47cdc2e7-ea7e-4a35-ad10-44dc59b1e38e",
+      "relativePath": "package.json",
+      "anchorKind": "line",
+      "category": "General",
+      "status": "open",
+      "body": "test",
+      "createdAt": "2026-09-04T00:27:08.762Z",
+      "updatedAt": "2026-09-04T00:27:08.762Z",
+      "anchor": {
+        "range": {
+          "start": {
+            "line": 13,
+            "character": 0
+          },
+          "end": {
+            "line": 13,
+            "character": 4
+          }
+        },
+        "quote": "  },",
+        "quoteLength": 4,
+        "quoteTruncated": false,
+        "quoteHash": "3288a136ca3e7c8564fedd3322a308b2d045f273db5055e2e2aea1f82d16218e",
+        "prefixLength": 256,
+        "prefixHash": "40417a9952fbb61b85df0b98b5b0af9e1f7faf447945c4327a7c73e1f100dfb6",
+        "suffixLength": 256,
+        "suffixHash": "d344ab4b07a8ba341fb5a332f27fc418ec7cc4a89f0ef98a7815678324139ce4"
+      },
+      "resolution": {
+        "state": "attached"
+      }
+    }
+  ]
 }

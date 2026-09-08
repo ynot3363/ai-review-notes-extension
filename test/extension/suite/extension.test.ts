@@ -13,6 +13,7 @@ const CRITICAL_COMMANDS = [
   'codingNotesForAi.cancelNoteEdit',
   'codingNotesForAi.changeCategory',
   'codingNotesForAi.deleteNote',
+  'codingNotesForAi.clearAllNotes',
   'codingNotesForAi.resolveNote',
   'codingNotesForAi.reopenNote',
   'codingNotesForAi.moveNote',
@@ -127,6 +128,14 @@ suite('Coding Notes for AI extension', () => {
       manifest.contributes?.configuration?.properties?.['codingNotesForAi.categories']?.default;
     const creationUiDefault =
       manifest.contributes?.configuration?.properties?.['codingNotesForAi.creationUi']?.default;
+    const newNoteDisplayDefault =
+      manifest.contributes?.configuration?.properties?.['codingNotesForAi.newNoteDisplay']?.default;
+    const clearAllCommand = manifest.contributes?.commands?.find(
+      ({ command }) => command === 'codingNotesForAi.clearAllNotes',
+    );
+    const clearAllViewTitleEntry = viewTitleEntries.find(
+      ({ command }) => command === 'codingNotesForAi.clearAllNotes',
+    );
     const treeReopenEntries = treeItemEntries.filter(
       ({ command }) => command === 'codingNotesForAi.reopenNote',
     );
@@ -153,6 +162,12 @@ suite('Coding Notes for AI extension', () => {
     assert.equal(reportViewTitleEntry?.when, 'view == codingNotesForAi.commentsView');
     assert.equal(reportViewTitleEntry?.group, 'navigation@2');
     assert.deepEqual(creationUiDefault, ['lineGutter', 'symbolHover']);
+    assert.equal(newNoteDisplayDefault, 'collapse');
+    assert.equal(clearAllCommand?.icon, '$(trash)');
+    assert.equal(
+      clearAllViewTitleEntry?.when,
+      'view == codingNotesForAi.commentsView && codingNotesForAi.hasComments',
+    );
     assert.equal(
       reopenEntry?.when,
       'commentController == codingNotesForAi && commentThread == resolved',
@@ -227,6 +242,9 @@ suite('Coding Notes for AI extension', () => {
     await vscode.commands.executeCommand('codingNotesForAi.editNote', comment);
     assert.equal(comment.mode, vscode.CommentMode.Editing);
     comment.body = 'Review this exact identifier.\nKeep the public name stable.';
+    await executeAndDismissNotifications('codingNotesForAi.refreshComments');
+    assert.equal(comment.mode, vscode.CommentMode.Editing);
+    assert.equal(comment.body, 'Review this exact identifier.\nKeep the public name stable.');
     await vscode.commands.executeCommand('codingNotesForAi.saveNoteEdit', comment);
     await vscode.commands.executeCommand('codingNotesForAi.resolveNote', thread);
 
@@ -427,6 +445,7 @@ async function executeCommandPaletteAction(title: string, completed: () => boole
   const deadline = Date.now() + 10_000;
   while (!completed()) {
     await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
     if (Date.now() >= deadline) {
       throw new Error(`Command Palette action did not complete: ${title}`);
     }

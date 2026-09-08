@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
 
+import { withReviewNoteStoreLock } from './reviewNoteLock';
+
 import {
   assertWorkspaceRelativePath,
   createEmptyReviewNoteStore,
@@ -69,8 +71,8 @@ export interface ConditionalReviewNoteMergeResult {
 }
 
 /**
- * Repository for exactly one workspace root. All mutations are serialized, and
- * all filesystem access goes through workspace.fs so remote workspaces work.
+ * Repository for exactly one workspace root. Mutations hold a filesystem lock
+ * across the entire read/modify/write transaction, including across hosts.
  */
 export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
   public readonly storeUri: vscode.Uri;
@@ -100,12 +102,12 @@ export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
   }
 
   public async load(): Promise<ReviewNoteStore> {
-    return this.enqueueMutation(() => this.readDirect());
+    return this.enqueueOperation(() => this.readDirect());
   }
 
   public async save(store: ReviewNoteStore): Promise<void> {
     const serialized = serializeReviewNoteStore(store);
-    await this.enqueueMutation(() => this.writeDirect(serialized));
+    await this.enqueueMutation(async () => this.writeDirect(serialized, await this.readDirect()));
   }
 
   public async list(): Promise<readonly StoredReviewNote[]> {
@@ -126,7 +128,7 @@ export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
         version: store.version,
         notes: [...notes, validated],
       };
-      await this.writeDirect(serializeReviewNoteStore(next));
+      await this.writeDirect(serializeReviewNoteStore(next), store);
       return validated;
     });
   }
@@ -139,14 +141,14 @@ export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
       if (notes.length === store.notes.length) {
         return false;
       }
-      await this.writeDirect(serializeReviewNoteStore({ version: store.version, notes }));
+      await this.writeDirect(serializeReviewNoteStore({ version: store.version, notes }), store);
       return true;
     });
   }
 
   /**
-   * Atomically compare and mutate one UUID within this repository's serialized
-   * operation queue. Undefined expected means "insert only if absent";
+   * Compare and mutate one UUID while holding the store's exclusive lock.
+   * Undefined expected means "insert only if absent";
    * undefined replacement means "delete only if unchanged". All other notes
    * are taken from the freshly loaded store and therefore remain untouched.
    */
@@ -205,7 +207,7 @@ export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
         !notesStructurallyEqual(validatedExpected, validatedReplacement);
       const store: ReviewNoteStore = { version: current.version, notes };
       if (wrote) {
-        await this.writeDirect(serializeReviewNoteStore(store));
+        await this.writeDirect(serializeReviewNoteStore(store), current);
       }
       return { applied: true, wrote, store };
     });
@@ -269,7 +271,7 @@ export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
       skippedCount += updateById.size;
       const store: ReviewNoteStore = { version: current.version, notes };
       if (changed) {
-        await this.writeDirect(serializeReviewNoteStore(store));
+        await this.writeDirect(serializeReviewNoteStore(store), current);
       }
       return { store, appliedCount, skippedCount, wrote: changed, externalDivergence };
     });
@@ -296,7 +298,7 @@ export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
     return parseReviewNoteStore(json);
   }
 
-  private async writeDirect(serialized: string): Promise<void> {
+  private async writeDirect(serialized: string, expected: ReviewNoteStore): Promise<void> {
     await vscode.workspace.fs.createDirectory(this.storeDirectoryUri);
     const bytes = new TextEncoder().encode(serialized);
     const temporaryUri = resolveUriWithinRoot(
@@ -310,19 +312,33 @@ export class ReviewNoteRepository implements ReviewNoteRepositoryLike {
       throw error;
     }
     try {
-      await vscode.workspace.fs.rename(temporaryUri, this.storeUri, { overwrite: true });
-    } catch {
-      // Some remote providers do not implement rename. Serialized direct writes
-      // are the best provider-neutral fallback; never remove the existing file.
+      await this.assertStoreUnchanged(expected);
       try {
+        await vscode.workspace.fs.rename(temporaryUri, this.storeUri, { overwrite: true });
+      } catch {
+        // The lock still covers a provider's direct-write fallback. Recheck for
+        // external writers that do not follow our advisory locking protocol.
+        await this.assertStoreUnchanged(expected);
         await vscode.workspace.fs.writeFile(this.storeUri, bytes);
-      } finally {
-        await deleteTemporaryFile(temporaryUri);
       }
+    } finally {
+      await deleteTemporaryFile(temporaryUri);
+    }
+  }
+
+  private async assertStoreUnchanged(expected: ReviewNoteStore): Promise<void> {
+    if (!storesStructurallyEqual(await this.readDirect(), expected)) {
+      throw new Error(
+        'The note store changed during this write. Refresh notes and retry the action.',
+      );
     }
   }
 
   private enqueueMutation<T>(operation: () => Promise<T>): Promise<T> {
+    return this.enqueueOperation(() => withReviewNoteStoreLock(this.storeUri, operation));
+  }
+
+  private enqueueOperation<T>(operation: () => Promise<T>): Promise<T> {
     const result = this.mutationTail.then(operation, operation);
     this.mutationTail = result.then(
       () => undefined,
