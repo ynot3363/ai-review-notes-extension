@@ -65,6 +65,7 @@ export interface NewReviewThreadInput {
 export interface UpdateReviewThreadInput {
   readonly id: string;
   readonly body: string;
+  readonly expectedBody?: string;
 }
 
 /** Persistence hooks. The adapter mutates editor UI only after a hook succeeds. */
@@ -92,6 +93,8 @@ export interface ReviewCommentControllerOptions extends ReviewDocumentEligibilit
   readonly authorName?: string;
   /** Controls only the native add-comment gutter; persisted threads remain visible. */
   readonly isGutterEnabled?: (document: vscode.TextDocument) => boolean;
+  /** Controls how a newly submitted note thread is displayed. */
+  readonly newNoteDisplay?: (uri: vscode.Uri) => 'collapse' | 'expanded';
 }
 
 export interface CreateDraftOptions {
@@ -112,6 +115,7 @@ export interface ReviewDraftState {
 
 interface ManagedThread {
   note: ReviewThreadNote;
+  editingBody?: string;
   readonly thread: vscode.CommentThread;
   readonly comment: ManagedReviewComment;
 }
@@ -160,6 +164,7 @@ export class ReviewCommentController implements vscode.Disposable {
   private readonly eligibility: ReviewDocumentEligibilityOptions;
   private readonly fallbackAuthor: string;
   private readonly isGutterEnabled: (document: vscode.TextDocument) => boolean;
+  private readonly newNoteDisplay: (uri: vscode.Uri) => 'collapse' | 'expanded';
   private disposed = false;
 
   public constructor(
@@ -174,6 +179,7 @@ export class ReviewCommentController implements vscode.Disposable {
     };
     this.fallbackAuthor = cleanLabel(options.authorName, 'Coding Notes for AI');
     this.isGutterEnabled = options.isGutterEnabled ?? (() => true);
+    this.newNoteDisplay = options.newNoteDisplay ?? (() => 'collapse');
     this.controller = vscode.comments.createCommentController(
       cleanLabel(options.controllerId, REVIEW_COMMENT_CONTROLLER_ID),
       cleanLabel(options.label, 'Coding Notes for AI'),
@@ -412,7 +418,10 @@ export class ReviewCommentController implements vscode.Disposable {
     this.bindStableId(entry, id);
     this.draftMetadata.delete(thread);
     this.applyNote(entry, note);
-    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+    thread.collapsibleState =
+      this.newNoteDisplay(note.uri) === 'expanded'
+        ? vscode.CommentThreadCollapsibleState.Expanded
+        : vscode.CommentThreadCollapsibleState.Collapsed;
     return thread;
   }
 
@@ -426,13 +435,24 @@ export class ReviewCommentController implements vscode.Disposable {
     if (!entry) {
       return undefined;
     }
-    const note = await this.callbacks.updateNote({ id: entry.note.id, body });
+    if (entry.editingBody !== undefined && entry.editingBody !== entry.note.body) {
+      throw new Error(
+        'This note changed externally. Your draft has been kept; cancel editing to load the latest text.',
+      );
+    }
+    const note = await this.callbacks.updateNote({
+      id: entry.note.id,
+      body,
+      ...(entry.editingBody !== undefined ? { expectedBody: entry.editingBody } : {}),
+    });
     if (!note) {
       return undefined;
     }
     if (note.id !== entry.note.id) {
       throw new Error('Updating a note cannot change its stable ID.');
     }
+    delete entry.editingBody;
+    entry.comment.mode = vscode.CommentMode.Preview;
     this.upsertNote(note);
     return note;
   }
@@ -444,6 +464,10 @@ export class ReviewCommentController implements vscode.Disposable {
     if (!entry) {
       return false;
     }
+    if (entry.comment.mode === vscode.CommentMode.Editing) {
+      return true;
+    }
+    entry.editingBody = entry.note.body;
     entry.comment.body = entry.note.body;
     entry.comment.mode = vscode.CommentMode.Editing;
     entry.thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
@@ -468,6 +492,7 @@ export class ReviewCommentController implements vscode.Disposable {
     if (!entry) {
       return false;
     }
+    delete entry.editingBody;
     entry.comment.body = entry.note.body;
     entry.comment.mode = vscode.CommentMode.Preview;
     this.refreshComment(entry);
@@ -571,8 +596,10 @@ export class ReviewCommentController implements vscode.Disposable {
     entry.thread.canReply = false;
     entry.thread.contextValue = threadContextOf(note);
     entry.thread.label = formatThreadLabel(note);
-    entry.comment.body = note.body;
-    entry.comment.mode = vscode.CommentMode.Preview;
+    if (entry.comment.mode !== vscode.CommentMode.Editing) {
+      entry.comment.body = note.body;
+      entry.comment.mode = vscode.CommentMode.Preview;
+    }
     entry.comment.author = { name: cleanLabel(note.authorName, this.fallbackAuthor) };
     entry.comment.contextValue = REVIEW_NOTE_COMMENT_CONTEXT;
     entry.comment.label = formatReviewNoteLabel(note.category, note.status);

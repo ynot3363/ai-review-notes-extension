@@ -2,8 +2,17 @@
 
 All notable changes to Coding Notes for AI will be documented in this file.
 
+## Unreleased
+
+- Serialize note transactions across extension processes with exclusive filesystem locks and check for external changes before replacing a store.
+- Preserve unsaved comment edits during refresh and reject saves based on externally changed text.
+- Bind Clear All Notes to the confirmed note snapshot, preserving later additions and edits.
+
 ## 0.6.0
 
+- Added a configurable collapsed/expanded display state for newly submitted notes, defaulting to collapsed.
+- Added a confirmed Clear All Notes command that safely preserves notes changed concurrently outside the extension.
+- Added an open-notes or all-notes scope picker before generating an AI resolution report.
 - Renamed the extension and its public identifiers to Coding Notes for AI.
 - Reframed report generation as an AI-resolution handoff and copied the generated task report to the clipboard.
 - Fixed View Note navigation so its native comment thread opens instead of only selecting the symbol.

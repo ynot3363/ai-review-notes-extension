@@ -1,4 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as noteLock from '../../../src/services/reviewNoteLock';
+
+// The provider below is in memory; map its URIs to real filesystem locks so
+// repository concurrency tests exercise the production lock implementation.
+vi.mock('../../../src/services/reviewNoteLock', async (importOriginal) => {
+  const original = await importOriginal<typeof noteLock>();
+  return {
+    withReviewNoteStoreLock: <T>(uri: vscode.Uri, operation: () => Promise<T>) =>
+      original.withReviewNoteStoreLock(
+        {
+          scheme: 'file',
+          fsPath: join(lockRoot, createHash('sha256').update(uri.toString()).digest('hex')),
+        } as vscode.Uri,
+        operation,
+      ),
+  };
+});
 
 const fileSystemState = vi.hoisted(() => ({
   files: new Map<string, Uint8Array>(),
@@ -95,6 +116,12 @@ import {
   resolveUriWithinRoot,
   ReviewNoteRepository,
 } from '../../../src/services/reviewNoteRepository';
+
+let lockRoot: string;
+beforeAll(async () => {
+  lockRoot = await mkdtemp(join(tmpdir(), 'coding-notes-repository-'));
+});
+afterAll(() => rm(lockRoot, { recursive: true, force: true }));
 
 const workspaceUri = vscode.Uri.parse('vscode-remote://ssh-remote+host/project');
 const storageUri = vscode.Uri.parse('vscode-userdata://local/extension-storage');
@@ -235,6 +262,59 @@ describe('ReviewNoteRepository', () => {
     await Promise.all([repository.upsert(note()), repository.upsert(second)]);
 
     await expect(repository.list()).resolves.toEqual([note(), second]);
+  });
+
+  it('preserves independent edits from separate repository instances', async () => {
+    const first = new ReviewNoteRepository({ workspaceFolder, mode: 'workspace' });
+    const second = new ReviewNoteRepository({ workspaceFolder, mode: 'workspace' });
+    const a = note();
+    const b = note('2596f84e-5d28-43b4-8962-1e3b9f4bf623', 'src/other.ts');
+    await first.save({ version: 1, notes: [a, b] });
+    const updatedA = { ...a, body: 'First window edit' };
+    const updatedB = { ...b, body: 'Second window edit' };
+
+    const results = await Promise.all([
+      first.compareAndSwap(a, updatedA),
+      second.compareAndSwap(b, updatedB),
+    ]);
+
+    expect(results.every((result) => result.applied)).toBe(true);
+    await expect(first.list()).resolves.toEqual([updatedA, updatedB]);
+  });
+
+  it('rejects one of two same-note edits from separate repository instances', async () => {
+    const first = new ReviewNoteRepository({ workspaceFolder, mode: 'workspace' });
+    const second = new ReviewNoteRepository({ workspaceFolder, mode: 'workspace' });
+    const original = note();
+    await first.save({ version: 1, notes: [original] });
+
+    const results = await Promise.all([
+      first.compareAndSwap(original, { ...original, body: 'First window edit' }),
+      second.compareAndSwap(original, { ...original, body: 'Second window edit' }),
+    ]);
+
+    expect(results.filter((result) => result.applied)).toHaveLength(1);
+    expect(results.filter((result) => !result.applied)).toHaveLength(1);
+  });
+
+  it('rejects an external write made while the replacement file is prepared', async () => {
+    const repository = new ReviewNoteRepository({ workspaceFolder, mode: 'workspace' });
+    const original = note();
+    await repository.save({ version: 1, notes: [original] });
+    const external = { ...original, body: 'External writer edit' };
+    vi.mocked(vscode.workspace.fs.writeFile).mockImplementationOnce(async (uri, bytes) => {
+      fileSystemState.files.set(uri.toString(), bytes);
+      fileSystemState.files.set(
+        repository.storeUri.toString(),
+        new TextEncoder().encode(serializeReviewNoteStore({ version: 1, notes: [external] })),
+      );
+    });
+
+    await expect(
+      repository.compareAndSwap(original, { ...original, body: 'My edit' }),
+    ).rejects.toThrow(/changed during this write/);
+    await expect(repository.list()).resolves.toEqual([external]);
+    expect([...fileSystemState.files.keys()].some((key) => key.endsWith('.tmp'))).toBe(false);
   });
 
   it('conditionally merges a target update while preserving an external addition', async () => {

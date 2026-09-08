@@ -444,6 +444,80 @@ describe('ReviewNoteManager conditional mutations', () => {
     expect(fixture.manager.getEntry(originalId)?.note).toEqual(externalEdit);
   });
 
+  it('clears notes across workspace roots', async () => {
+    const firstRoot = workspace('one', 0);
+    const secondRoot = workspace('two', 1);
+    const secondId = '2596f84e-5d28-43b4-8962-1e3b9f4bf623';
+    const fixture = await createManagerFixture([firstRoot, secondRoot], {
+      one: [storedNote(originalId, 'src/one.ts')],
+      two: [storedNote(secondId, 'src/two.ts')],
+    });
+
+    await expect(fixture.manager.clearAllNotes()).resolves.toEqual({
+      deletedCount: 2,
+      skippedCount: 0,
+    });
+
+    expect(repositoryFor(fixture, 'one').store.notes).toEqual([]);
+    expect(repositoryFor(fixture, 'two').store.notes).toEqual([]);
+    expect(fixture.manager.getNotes()).toEqual([]);
+  });
+
+  it('keeps externally changed notes while clearing the rest', async () => {
+    const root = workspace('one');
+    const secondId = '2596f84e-5d28-43b4-8962-1e3b9f4bf623';
+    const first = storedNote(originalId, 'src/one.ts');
+    const second = storedNote(secondId, 'src/two.ts');
+    const fixture = await createManagerFixture([root], { one: [first, second] });
+    const repository = repositoryFor(fixture, 'one');
+    const externalEdit = externallyEditBody(first);
+    repository.store = { version: 1, notes: [externalEdit, second] };
+
+    await expect(fixture.manager.clearAllNotes()).resolves.toEqual({
+      deletedCount: 1,
+      skippedCount: 1,
+    });
+
+    expect(repository.store.notes).toEqual([externalEdit]);
+    expect(fixture.manager.getEntry(originalId)?.note).toEqual(externalEdit);
+    expect(fixture.manager.getEntry(secondId)).toBeUndefined();
+  });
+
+  it('keeps additions and edits refreshed while the clear confirmation is open', async () => {
+    const root = workspace('one');
+    const second = storedNote('2596f84e-5d28-43b4-8962-1e3b9f4bf623', 'src/two.ts');
+    const fixture = await createManagerFixture([root], {
+      one: [storedNote(originalId, 'src/one.ts'), second],
+    });
+    const repository = repositoryFor(fixture, 'one');
+    const snapshot = fixture.manager.captureClearAllSnapshot();
+    const changed = externallyEditBody(repository.store.notes[0]!);
+    const added = storedNote('3596f84e-5d28-43b4-8962-1e3b9f4bf623', 'src/new.ts');
+    documentAt(root, added.relativePath);
+    repository.store = { version: 1, notes: [changed, second, added] };
+    await fixture.manager.refresh();
+
+    await expect(fixture.manager.clearAllNotes(snapshot)).resolves.toEqual({
+      deletedCount: 1,
+      skippedCount: 1,
+    });
+    expect(repository.store.notes).toEqual([changed, added]);
+  });
+
+  it('rejects a draft based on the old body even after the manager refreshed', async () => {
+    const fixture = await createManagerFixture([workspace('one')]);
+    const repository = repositoryFor(fixture, 'one');
+    const original = repository.store.notes[0]!;
+    const changed = externallyEditBody(original);
+    repository.store = { version: 1, notes: [changed] };
+    await fixture.manager.refresh();
+
+    await expect(
+      fixture.manager.updateBody(originalId, 'Stale draft', original.body),
+    ).rejects.toBeInstanceOf(ReviewNoteConflictError);
+    expect(repository.store.notes).toEqual([changed]);
+  });
+
   it('moves an attached note to a new file and range without changing its content', async () => {
     const root = workspace('one');
     const fixture = await createManagerFixture([root]);
