@@ -40,6 +40,8 @@ Each thread contains one structured finding with a category, status, text, times
 
 Newly submitted threads collapse by default. Set `codingNotesForAi.newNoteDisplay` to `expanded` to leave them open instead.
 
+Saved, attached notes show a note icon to the left of the editor's line numbers, using light or dark artwork to match the color theme. Range notes are marked at their first line. These markers remain visible when a thread is collapsed or the add-note gutter control is disabled. Turn off **Coding Notes for AI: Show Gutter Icons** to hide these custom markers immediately; native comment controls remain available.
+
 ### Symbol anchors
 
 For languages with an installed document-symbol provider, Add Note can target any function, class, method, constant, variable, or other declaration exposed for the file instead of the exact selection. Hover a reported symbol's declaration to reveal a compact **Add Note** action for direct attachment. The regular target picker puts the closest symbol first and keeps every other reported symbol searchable. Symbol support is best effort: language extensions expose different levels of detail, and local variables are not always reported. A symbol note also retains the declaration range as its universal text-anchor fallback.
@@ -87,6 +89,8 @@ Commands intended for direct use are available from the Command Palette under **
 
 ## Explorer, reports, and AI discovery
 
+When grouped by file, the Explorer uses your active file icon theme for each file, including Markdown, JSON, and other file types.
+
 The Explorer tree groups findings by file, category, or status and includes resolved and orphaned notes. Selecting an attached finding opens its file and reveals its range. Resolved findings expose Reopen in the tree, including resolved orphaned notes; detached findings also expose explicit Reattach and Delete actions. AI resolution reports include the relevant `CODING_NOTES_FOR_AI.json` store path, are copied to the clipboard, and open as untitled Markdown documents ready to paste into an AI coding agent; they are never written automatically.
 
 In shared mode, an AI coding agent with workspace access can read `CODING_NOTES_FOR_AI.json` like any other project file. Coding Notes for AI also builds a bounded prompt from the finding, anchor metadata, and surrounding source context. It asks the assistant to assess or implement the note without changing unrelated code.
@@ -101,6 +105,7 @@ Configure these under **Settings** by searching for `Coding Notes for AI`, or pl
 | `codingNotesForAi.defaultCategory`     | `"General"`                        | Initially selected category.                                             |
 | `codingNotesForAi.defaultStatus`       | `"open"`                           | Status for new findings: `open`, `question`, `follow-up`, or `resolved`. |
 | `codingNotesForAi.creationUi`          | gutter and symbol hover            | Any combination of gutter, CodeLens, and symbol-hover controls.          |
+| `codingNotesForAi.showGutterIcons`     | `true`                             | Show saved-note gutter icons; toggles immediately without reloading.     |
 | `codingNotesForAi.newNoteDisplay`      | `"collapse"`                       | Display a newly added note as `collapse` or `expanded`.                  |
 | `codingNotesForAi.storage.mode`        | `"shared"`                         | Uses a shared JSON sidecar or private local VS Code storage.             |
 | `codingNotesForAi.storage.sharedFile`  | `"CODING_NOTES_FOR_AI.json"`       | Workspace-root-relative shared sidecar filename.                         |

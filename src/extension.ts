@@ -35,6 +35,7 @@ import {
   ReviewSymbolHoverProvider,
 } from './views/reviewSymbolHoverProvider';
 import { ReviewSymbolNoteCodeLensProvider } from './views/reviewSymbolNoteCodeLensProvider';
+import { ReviewNoteGutterDecorations } from './views/reviewNoteGutterDecorations';
 
 interface AnchorTarget {
   readonly range: vscode.Range;
@@ -110,11 +111,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   const symbolNoteCodeLenses = new ReviewSymbolNoteCodeLensProvider();
+  const noteGutterDecorations = new ReviewNoteGutterDecorations(context.extensionUri);
   const workspace = new ReviewWorkspace(
     manager,
     provider,
     commentUi,
     symbolNoteCodeLenses,
+    noteGutterDecorations,
     treeView,
     output,
   );
@@ -231,6 +234,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     commentUi,
     symbolCodeLenses,
     symbolNoteCodeLenses,
+    noteGutterDecorations,
     vscode.languages.registerCodeLensProvider({ language: '*' }, symbolCodeLenses),
     vscode.languages.registerCodeLensProvider({ language: '*' }, symbolNoteCodeLenses),
     vscode.languages.registerHoverProvider({ language: '*' }, symbolHoverProvider),
@@ -500,6 +504,7 @@ class ReviewWorkspace {
     private readonly provider: ReviewCommentsTreeProvider,
     private readonly commentUi: ReviewCommentController,
     private readonly symbolNoteCodeLenses: ReviewSymbolNoteCodeLensProvider,
+    private readonly noteGutterDecorations: ReviewNoteGutterDecorations,
     private readonly treeView: vscode.TreeView<ReviewTreeElement>,
     private readonly output: vscode.OutputChannel,
   ) {}
@@ -543,6 +548,7 @@ class ReviewWorkspace {
   private acceptResult(result: ReviewNoteManagerResult, updateThreads: boolean): void {
     this.provider.setComments(result.notes);
     this.symbolNoteCodeLenses.setNotes(result.notes);
+    this.noteGutterDecorations.setNotes(result.notes);
     if (updateThreads) {
       this.commentUi.replaceNotes(
         result.notes.filter(({ anchorState }) => anchorState === 'attached').map(toThreadNote),

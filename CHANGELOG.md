@@ -2,6 +2,15 @@
 
 All notable changes to Coding Notes for AI will be documented in this file.
 
+## 0.9.0
+
+- Added theme-aware gutter icons for saved, attached notes, including collapsed threads, with adjusted positioning.
+- Added `codingNotesForAi.showGutterIcons`, enabled by default, to show or hide custom markers immediately without changing native comment controls.
+- Added trimmed, editable SVG note icons and removed the unused note PNGs; no image conversion is needed during builds.
+- File groups in the Explorer now use the active file icon theme.
+- Open notes in the Explorer now use a hollow circle icon.
+- Updated the Marketplace icon and added an editable SVG version of the artwork.
+
 ## 0.8.0
 
 - Serialized note transactions across extension processes with exclusive filesystem locks and added a check for external changes before replacing a store.

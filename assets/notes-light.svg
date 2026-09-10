@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 100" role="img" aria-labelledby="title">
+  <title id="title">Light coding note</title>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff9ef" />
+      <stop offset="1" stop-color="#f1e9dc" />
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#789eb1" />
+      <stop offset="1" stop-color="#59839b" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d8ad46" />
+      <stop offset="1" stop-color="#b5882c" />
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a44c66" />
+      <stop offset="1" stop-color="#873c54" />
+    </linearGradient>
+  </defs>
+  <path fill="#103c58" d="M15 22H68Q85 22 85 39V68Q85 75 79 81L61 98Q59 100 54 100H15Q0 100 0 85V37Q0 22 15 22Z" />
+  <path fill="url(#blue)" d="M15 25H68Q82 25 82 39V67Q82 74 77 79L60 95Q58 97 53 97H15Q3 97 3 85V37Q3 25 15 25Z" />
+  <path fill="url(#paper)" d="M15 25H68Q82 25 82 39V67Q82 72 76 72H65Q55 72 55 83V87Q55 97 46 97H15Q3 97 3 85V37Q3 25 15 25Z" />
+  <rect x="15" y="41" width="54" height="8" rx="4" fill="url(#blue)" />
+  <rect x="15" y="56" width="43" height="8" rx="4" fill="url(#blue)" />
+  <rect x="15" y="72" width="31" height="8" rx="4" fill="url(#red)" />
+  <path d="M85 17L90 4M94 27L105 19M96 42L106 44" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round" />
+</svg>
