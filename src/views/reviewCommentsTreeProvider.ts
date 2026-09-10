@@ -16,6 +16,9 @@ export class ReviewGroupItem extends vscode.TreeItem {
     this.description = String(comments.length);
     this.contextValue = 'codingNotesForAi.group';
     this.iconPath = groupIcon(groupBy);
+    if (groupBy === 'file' && comments[0]) {
+      this.resourceUri = comments[0].uri;
+    }
   }
 }
 
@@ -181,12 +184,17 @@ function groupIcon(groupBy: ReviewGroupBy): vscode.ThemeIcon {
     case 'status':
       return new vscode.ThemeIcon('filter');
     case 'file':
-      return new vscode.ThemeIcon('file-code');
+      return vscode.ThemeIcon.File;
   }
 }
 
 function statusIcon(status: string): vscode.ThemeIcon {
   switch (status) {
+    case 'open':
+      return new vscode.ThemeIcon(
+        'circle-large-outline',
+        new vscode.ThemeColor('problemsWarningIcon.foreground'),
+      );
     case 'resolved':
       return new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
     case 'question':

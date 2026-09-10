@@ -2,7 +2,7 @@
   "name": "coding-notes-for-ai",
   "displayName": "Coding Notes for AI",
   "description": "Attach structured, shareable coding notes to any workspace text file and hand them to AI coding assistants.",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "publisher": "aepcodes",
   "license": "AGPL-3.0-only",
   "repository": {
@@ -493,6 +493,12 @@
           ],
           "scope": "resource",
           "description": "Controls used to create notes. Enable any combination; existing note threads remain visible."
+        },
+        "codingNotesForAi.showGutterIcons": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show custom gutter icons for saved coding notes. Changes apply immediately. Native comment controls remain available."
         },
         "codingNotesForAi.newNoteDisplay": {
           "type": "string",

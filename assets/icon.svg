@@ -1,29 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1280" role="img" aria-labelledby="title description">
   <title id="title">Coding Notes for AI</title>
-  <desc id="description">A coding note and AI sparkle on a circular navy field.</desc>
+  <desc id="description">Cream code brackets and a folded coding note on a navy rounded square with a gold border and three gold accent rays.</desc>
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#073552" />
+      <stop offset="0.48" stop-color="#0d3f60" />
+      <stop offset="1" stop-color="#062c47" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4da8b" />
+      <stop offset="0.28" stop-color="#deb55b" />
+      <stop offset="0.7" stop-color="#efca6d" />
+      <stop offset="1" stop-color="#b88027" />
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#fffbed" />
+      <stop offset="0.65" stop-color="#faf3df" />
+      <stop offset="1" stop-color="#ede7d7" />
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#497e9f" />
+      <stop offset="1" stop-color="#386486" />
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#477a9e" />
+      <stop offset="0.65" stop-color="#6595b6" />
+      <stop offset="1" stop-color="#3e6b8e" />
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a53f60" />
+      <stop offset="1" stop-color="#88334f" />
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#00111c" flood-opacity="0.55" />
+    </filter>
+    <filter id="slash-shadow" x="-50%" y="-20%" width="200%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="2" dy="8" stdDeviation="6" flood-color="#00111c" flood-opacity="0.5" />
+    </filter>
+  </defs>
 
-  <!-- Caltagirone Dusk: navy brand field. -->
-  <circle cx="512" cy="512" r="464" fill="#153249" />
+  <!-- Rounded navy tile, gold rim, and fine inner highlight. -->
+  <rect x="106" y="111" width="1038" height="1036" rx="193" fill="url(#gold)" stroke="#b98b35" stroke-width="3" />
+  <rect x="119" y="124" width="1012" height="1010" rx="179" fill="url(#navy)" stroke="#fff0b6" stroke-opacity="0.8" stroke-width="2" />
 
-  <!-- Limestone coding-note bubble. -->
-  <path
-    fill="#f8f2e8"
-    d="M308 286h408c44.2 0 80 35.8 80 80v268c0 44.2-35.8 80-80 80H548l-88 82c-20.4 19-53.6 4.6-53.6-23.3V714H308c-44.2 0-80-35.8-80-80V366c0-44.2 35.8-80 80-80Z"
-  />
+  <!-- Folded note. -->
+  <g filter="url(#shadow)">
+    <path fill="url(#paper)" d="M429 616H898Q940 616 940 659V817Q940 846 920 869L838 958Q820 978 790 978H429Q387 978 387 936V659Q387 616 429 616Z" />
+    <path fill="url(#fold)" d="M791 978C801 972 804 958 804 940V909C804 874 831 849 865 849H907C926 849 937 835 940 817C940 846 931 857 920 869L838 958Q820 978 791 978Z" />
+    <rect x="455" y="693" width="412" height="41" rx="20.5" fill="url(#blue)" />
+    <rect x="455" y="766" width="259" height="41" rx="20.5" fill="url(#blue)" />
+    <rect x="455" y="842" width="224" height="40" rx="20" fill="url(#red)" />
+  </g>
 
-  <!-- Weathered ceramic-blue code chevrons. -->
-  <path
-    fill="none"
-    stroke="#6f94a9"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    stroke-width="52"
-    d="m430 418-90 82 90 82m164-164 90 82-90 82"
-  />
+  <!-- Rounded code chevrons. -->
+  <g fill="url(#paper)" filter="url(#shadow)">
+    <path d="M410 312Q427 296 442 312L457 328Q472 345 457 361L372 447L453 534Q468 550 452 567L434 585Q421 600 407 585L291 468Q273 451 290 433Z" />
+    <path d="M734 312Q749 296 765 312L880 428Q898 445 881 463L765 579Q750 594 735 578L716 559Q701 543 716 528L805 445L721 361Q706 346 720 330Z" />
+  </g>
 
-  <!-- Restrained brass AI accent. -->
-  <path
-    fill="#b58b3e"
-    d="M768 174c9.8 44.8 27.2 62.2 72 72-44.8 9.8-62.2 27.2-72 72-9.8-44.8-27.2-62.2-72-72 44.8-9.8 62.2-27.2 72-72Z"
-  />
+  <!-- Slash sits over the note, as in the original artwork. -->
+  <path d="M637 258L509 626" fill="none" stroke="url(#paper)" stroke-width="71" stroke-linecap="round" filter="url(#slash-shadow)" />
+
+  <!-- Three warm gold rays. -->
+  <g fill="url(#gold)" stroke="#f7d47b" stroke-width="1.5" filter="url(#shadow)">
+    <rect x="911" y="501" width="31" height="85" rx="15.5" transform="rotate(10 926.5 543.5)" />
+    <rect x="987" y="525" width="30" height="106" rx="15" transform="rotate(46 1002 578)" />
+    <rect x="978" y="645" width="77" height="28" rx="14" transform="rotate(-1 1016.5 659)" />
+  </g>
 </svg>
